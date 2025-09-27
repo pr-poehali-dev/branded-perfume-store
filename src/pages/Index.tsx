@@ -184,7 +184,7 @@ const Index = () => {
                     <>
                       {cart.map(item => (
                         <div key={item.id} className="flex items-center space-x-4 p-4 border border-border rounded-lg">
-                          <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                          <img src={item.image_url || item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
                           <div className="flex-1">
                             <h4 className="font-medium text-sm">{item.name}</h4>
                             <p className="text-xs text-muted-foreground">{item.brand}</p>
@@ -323,7 +323,7 @@ const Index = () => {
                   <CardContent className="p-6">
                     <div className="relative mb-4">
                       <img
-                        src={product.image}
+                        src={product.image_url || product.image}
                         alt={product.name}
                         className="w-full h-64 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
                       />
