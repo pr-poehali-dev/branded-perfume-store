@@ -1,0 +1,2 @@
+-- Устанавливаем одну красивую картинку парфюма для всех товаров
+UPDATE products SET image_url = 'https://images.unsplash.com/photo-1541643600914-78b084683601?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
