@@ -1,88 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 
 interface Product {
   id: number;
   name: string;
   brand: string;
+  description?: string;
   price: number;
   originalPrice?: number;
+  competitorPrice?: number;
   image: string;
   category: 'men' | 'women' | 'unisex';
+  volumeMl?: number;
   isNew?: boolean;
   discount?: number;
+  inStock?: boolean;
 }
 
 interface CartItem extends Product {
   quantity: number;
 }
 
+interface ProductsResponse {
+  products: Product[];
+  total: number;
+  count: number;
+  brands: string[];
+  filters: {
+    category: string;
+    brand: string;
+    search: string;
+    limit: number;
+  };
+}
+
 const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "Elegance Elixir",
-      brand: "Chanel",
-      price: 8990,
-      originalPrice: 12990,
-      image: "/img/6b6f7b09-3c39-40fc-8a49-53871a24d72a.jpg",
-      category: "women",
-      isNew: true,
-      discount: 30
-    },
-    {
-      id: 2,
-      name: "Royal Oud",
-      brand: "Tom Ford",
-      price: 15990,
-      image: "/img/6b6f7b09-3c39-40fc-8a49-53871a24d72a.jpg",
-      category: "men"
-    },
-    {
-      id: 3,
-      name: "Mystic Rose",
-      brand: "Dior",
-      price: 7490,
-      originalPrice: 8990,
-      image: "/img/6b6f7b09-3c39-40fc-8a49-53871a24d72a.jpg",
-      category: "women",
-      discount: 15
-    },
-    {
-      id: 4,
-      name: "Amber Dreams",
-      brand: "Hermès",
-      price: 11990,
-      image: "/img/6b6f7b09-3c39-40fc-8a49-53871a24d72a.jpg",
-      category: "unisex",
-      isNew: true
-    },
-    {
-      id: 5,
-      name: "Black Noir",
-      brand: "Yves Saint Laurent",
-      price: 6790,
-      originalPrice: 7990,
-      image: "/img/6b6f7b09-3c39-40fc-8a49-53871a24d72a.jpg",
-      category: "men",
-      discount: 15
-    },
-    {
-      id: 6,
-      name: "Crystal Bloom",
-      brand: "Versace",
-      price: 5990,
-      image: "/img/6b6f7b09-3c39-40fc-8a49-53871a24d72a.jpg",
-      category: "women"
-    }
-  ];
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const categories = [
     { id: 'all', name: 'Все категории' },
@@ -92,6 +57,55 @@ const Index = () => {
     { id: 'new', name: 'Новинки' },
     { id: 'sale', name: 'Скидки' }
   ];
+
+  // Fetch products from API
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (selectedBrand) params.append('brand', selectedBrand);
+      if (searchQuery) params.append('search', searchQuery);
+      params.append('limit', '50');
+
+      const response = await fetch(`https://functions.poehali.dev/d04b8692-7031-4714-b799-5e76b50b53b9?${params}`);
+      const data: ProductsResponse = await response.json();
+      
+      setProducts(data.products || []);
+      setBrands(data.brands || []);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Trigger price scraping
+  const triggerPriceScraping = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/efe76dc0-eccb-40b0-a996-4fa36b3e7a9d', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      await response.json();
+      // Refresh products after price update
+      fetchProducts();
+    } catch (error) {
+      console.error('Failed to trigger price scraping:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, [selectedCategory, selectedBrand, searchQuery]);
+
+  useEffect(() => {
+    // Trigger initial price scraping on component mount
+    triggerPriceScraping();
+  }, []);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -122,13 +136,6 @@ const Index = () => {
       )
     );
   };
-
-  const filteredProducts = products.filter(product => {
-    if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'new') return product.isNew;
-    if (selectedCategory === 'sale') return product.discount;
-    return product.category === selectedCategory;
-  });
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -226,7 +233,7 @@ const Index = () => {
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-fade-in">
             Откройте для себя мир роскошных ароматов от ведущих мировых брендов. 
-            Эксклюзивные предложения и цены ниже рыночных.
+            Цены на 30% ниже конкурентов благодаря прямым поставкам.
           </p>
           <div className="flex flex-wrap justify-center gap-4 animate-fade-in">
             <Badge variant="secondary" className="text-sm px-4 py-2">
@@ -241,6 +248,41 @@ const Index = () => {
               <Icon name="Percent" size={16} className="mr-2" />
               Скидки до 30%
             </Badge>
+            <Badge variant="secondary" className="text-sm px-4 py-2">
+              <Icon name="Database" size={16} className="mr-2" />
+              {products.length}+ товаров
+            </Badge>
+          </div>
+        </div>
+      </section>
+
+      {/* Filters Section */}
+      <section className="py-8 bg-card border-b border-border">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col md:flex-row gap-4 flex-1">
+              <Input
+                placeholder="Поиск парфюмов..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-xs"
+              />
+              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Выберите бренд" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Все бренды</SelectItem>
+                  {brands.map(brand => (
+                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={triggerPriceScraping} variant="outline" size="sm">
+              <Icon name="RefreshCw" size={16} className="mr-2" />
+              Обновить цены
+            </Button>
           </div>
         </div>
       </section>
@@ -269,51 +311,78 @@ const Index = () => {
       {/* Products Grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProducts.map(product => (
-              <Card key={product.id} className="group hover:shadow-lg transition-shadow duration-300 animate-scale-in">
-                <CardContent className="p-6">
-                  <div className="relative mb-4">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-64 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
-                    />
-                    {product.isNew && (
-                      <Badge className="absolute top-2 left-2 bg-primary">Новинка</Badge>
-                    )}
-                    {product.discount && (
-                      <Badge className="absolute top-2 right-2 bg-destructive">-{product.discount}%</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground font-medium">{product.brand}</p>
-                    <h3 className="font-heading font-semibold text-lg">{product.name}</h3>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl font-bold text-foreground">
-                        {product.price.toLocaleString('ru-RU')} ₽
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">
-                          {product.originalPrice.toLocaleString('ru-RU')} ₽
-                        </span>
+          {loading ? (
+            <div className="text-center py-12">
+              <Icon name="Loader2" size={48} className="animate-spin mx-auto mb-4 text-primary" />
+              <p className="text-muted-foreground">Загружаем каталог...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {products.map(product => (
+                <Card key={product.id} className="group hover:shadow-lg transition-shadow duration-300 animate-scale-in">
+                  <CardContent className="p-6">
+                    <div className="relative mb-4">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-64 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {product.isNew && (
+                        <Badge className="absolute top-2 left-2 bg-primary">Новинка</Badge>
+                      )}
+                      {product.discount && (
+                        <Badge className="absolute top-2 right-2 bg-destructive">-{product.discount}%</Badge>
                       )}
                     </div>
                     
-                    <Button
-                      onClick={() => addToCart(product)}
-                      className="w-full mt-4 bg-luxury-gold hover:bg-luxury-gold/90 text-white"
-                    >
-                      <Icon name="ShoppingCart" size={16} className="mr-2" />
-                      Добавить в корзину
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground font-medium">{product.brand}</p>
+                      <h3 className="font-heading font-semibold text-lg">{product.name}</h3>
+                      {product.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                      )}
+                      {product.volumeMl && (
+                        <p className="text-xs text-muted-foreground">{product.volumeMl} мл</p>
+                      )}
+                      
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl font-bold text-foreground">
+                          {product.price.toLocaleString('ru-RU')} ₽
+                        </span>
+                        {product.originalPrice && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {product.originalPrice.toLocaleString('ru-RU')} ₽
+                          </span>
+                        )}
+                      </div>
+                      
+                      {product.competitorPrice && product.competitorPrice > product.price && (
+                        <div className="text-xs text-green-600">
+                          Экономия: {(product.competitorPrice - product.price).toLocaleString('ru-RU')} ₽
+                        </div>
+                      )}
+                      
+                      <Button
+                        onClick={() => addToCart(product)}
+                        className="w-full mt-4 bg-luxury-gold hover:bg-luxury-gold/90 text-white"
+                        disabled={!product.inStock}
+                      >
+                        <Icon name="ShoppingCart" size={16} className="mr-2" />
+                        {product.inStock ? 'Добавить в корзину' : 'Нет в наличии'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          
+          {!loading && products.length === 0 && (
+            <div className="text-center py-12">
+              <Icon name="Search" size={48} className="mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">Товары по вашему запросу не найдены</p>
+            </div>
+          )}
         </div>
       </section>
 

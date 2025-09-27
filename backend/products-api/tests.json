@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "Test get all products",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "products": "array",
+        "total": "number",
+        "count": "number",
+        "brands": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test get women products",
+      "method": "GET",
+      "path": "/?category=women",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "products": "array",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

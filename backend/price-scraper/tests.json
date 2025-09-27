@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "Test price scraper info endpoint",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "message": "string",
+        "endpoints": "object"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test price scraping execution",
+      "method": "POST",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "message": "string",
+        "products_updated": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
