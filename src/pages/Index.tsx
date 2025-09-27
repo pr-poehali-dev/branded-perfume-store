@@ -267,12 +267,12 @@ const Index = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="max-w-xs"
               />
-              <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+              <Select value={selectedBrand || "all-brands"} onValueChange={(value) => setSelectedBrand(value === "all-brands" ? "" : value)}>
                 <SelectTrigger className="max-w-xs">
                   <SelectValue placeholder="Выберите бренд" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все бренды</SelectItem>
+                  <SelectItem value="all-brands">Все бренды</SelectItem>
                   {brands.map(brand => (
                     <SelectItem key={brand} value={brand}>{brand}</SelectItem>
                   ))}
